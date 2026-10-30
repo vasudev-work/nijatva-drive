@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useDrive } from '../store/DriveProvider';
 import type { IconName } from '../utils/icons';
 
@@ -26,13 +27,14 @@ export function TabBar({
   const { theme, stats } = useDrive();
   return (
     <View style={[styles.wrap, { bottom: 18 + bottomInset }]} pointerEvents="box-none">
-      <View
-        style={[
-          styles.bar,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-          theme.shadow.float,
-        ]}
-      >
+      <View style={[styles.barWrap, theme.shadow.float]}>
+        <BlurView
+          intensity={theme.mode === 'dark' ? 40 : 70}
+          tint={theme.mode === 'dark' ? 'dark' : 'light'}
+          experimentalBlurMethod="dimezisBlurView"
+          style={[styles.blur, { borderColor: theme.colors.border }]}
+        />
+        <View style={styles.bar}>
         {TABS.map((tab) => {
           const isActive = tab.key === active;
           return (
@@ -63,6 +65,7 @@ export function TabBar({
             </Pressable>
           );
         })}
+        </View>
       </View>
     </View>
   );
@@ -70,10 +73,16 @@ export function TabBar({
 
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  barWrap: { borderRadius: 24 },
+  blur: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
   bar: {
     flexDirection: 'row',
     borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 8,
     paddingVertical: 9,
     gap: 2,

@@ -8,12 +8,16 @@ const BLOBS_DIR = 'blobs';
 export const DEFAULT_QUOTA = 15 * 1024 * 1024 * 1024; // 15 GB plan
 
 const defaultMeta: DriveMeta = {
-  version: 1,
+  version: 2,
   quotaBytes: DEFAULT_QUOTA,
   passcode: null,
   onboarded: false,
   themeMode: 'system',
   apiUrl: null,
+  defaultHomeTab: 'files',
+  photoBackup: false,
+  telemetry: false,
+  crashReports: false,
 };
 
 export function vaultDirectory(): Directory {
@@ -65,6 +69,7 @@ function normalizeNode(node: DriveNode): DriveNode {
   return {
     ...node,
     starred: Boolean(node.starred),
+    offline: Boolean(node.offline),
     trashedAt: node.trashedAt ?? null,
     share: node.share ?? null,
     localUri: node.localUri ?? null,
@@ -185,6 +190,7 @@ function folder(name: string, parentId: string | null, createdAt: number): Drive
     createdAt,
     updatedAt: createdAt,
     starred: false,
+    offline: false,
     trashedAt: null,
     share: null,
   };
@@ -217,9 +223,29 @@ async function makeSeedFile(
     createdAt,
     updatedAt: createdAt,
     starred: false,
+    offline: false,
     trashedAt: null,
     share: null,
   };
+}
+
+export function pruneOrphanBlobs(validUris: string[]): { removed: number; bytes: number } {
+  ensureVault();
+  const valid = new Set(validUris);
+  let removed = 0;
+  let bytes = 0;
+  for (const entry of blobsDirectory().list()) {
+    if (entry instanceof File && !valid.has(entry.uri)) {
+      bytes += entry.size;
+      try {
+        entry.delete();
+        removed += 1;
+      } catch {
+        // leave it for the next sweep
+      }
+    }
+  }
+  return { removed, bytes };
 }
 
 export { folder as makeFolderNode };

@@ -25,12 +25,12 @@ export function FilesScreen({
   folderId,
   onOpenFolder,
   onOpenFile,
-  onOpenSettings,
+  onOpenDrawer,
 }: {
   folderId: string | null;
   onOpenFolder: (id: string | null) => void;
   onOpenFile: (id: string) => void;
-  onOpenSettings: () => void;
+  onOpenDrawer: () => void;
 }) {
   const {
     theme,
@@ -46,6 +46,7 @@ export function FilesScreen({
     move,
     trash,
     toggleStar,
+    toggleOffline,
     share,
     notify,
     stats,
@@ -145,6 +146,14 @@ export function FilesScreen({
           },
         },
         {
+          key: 'offline',
+          label: menuNode.offline ? 'Remove from offline' : 'Available offline',
+          icon: menuNode.offline ? 'cloud-done' : 'cloud-download-outline',
+          onPress: () => {
+            toggleOffline(menuNode.id);
+          },
+        },
+        {
           key: 'share',
           label: menuNode.share ? 'Manage share link' : 'Create share link',
           icon: 'link',
@@ -179,7 +188,7 @@ export function FilesScreen({
         }
         searchValue={query}
         onSearchChange={setQuery}
-        onAvatarPress={onOpenSettings}
+        onAvatarPress={onOpenDrawer}
       />
 
       <FlatList

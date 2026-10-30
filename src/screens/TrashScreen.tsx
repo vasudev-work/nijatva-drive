@@ -9,7 +9,7 @@ import { EmptyState, IconTile, PrimaryButton } from '../components/ui';
 import { categoryOf, formatBytes, formatShortDate } from '../utils/format';
 import { iconForCategory, inkForCategory, tintForCategory } from '../utils/icons';
 
-export function TrashScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function TrashScreen({ onOpenDrawer }: { onOpenDrawer: () => void }) {
   const { theme, trashedNodes, restore, destroy, emptyTrash } = useDrive();
   const [menuNode, setMenuNode] = useState<DriveNode | null>(null);
   const [confirmEmpty, setConfirmEmpty] = useState(false);
@@ -21,7 +21,7 @@ export function TrashScreen({ onOpenSettings }: { onOpenSettings: () => void }) 
         title="Trash"
         subtitle="Deleted items stay here until you empty them"
         showSearch={false}
-        onAvatarPress={onOpenSettings}
+        onAvatarPress={onOpenDrawer}
       />
       <FlatList
         data={items}

@@ -292,6 +292,94 @@ export function Row({
   );
 }
 
+
+export function GroupLabel({ label }: { label: string }) {
+  const { theme } = useDrive();
+  return <Text style={[styles.groupLabel, { color: theme.colors.primary }]}>{label}</Text>;
+}
+
+export function SettingsRow({
+  title,
+  subtitle,
+  value,
+  icon,
+  onPress,
+  right,
+  tone = 'default',
+}: {
+  title: string;
+  subtitle?: string;
+  value?: string;
+  icon?: IconName;
+  onPress?: () => void;
+  right?: React.ReactNode;
+  tone?: 'default' | 'danger';
+}) {
+  const { theme } = useDrive();
+  const color = tone === 'danger' ? theme.colors.danger : theme.colors.text;
+  const content = (
+    <>
+      {icon ? (
+        <Ionicons
+          name={icon}
+          size={18}
+          color={tone === 'danger' ? theme.colors.danger : theme.colors.textMuted}
+        />
+      ) : null}
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.settingTitle, { color }]}>{title}</Text>
+        {subtitle ? (
+          <Text style={[styles.settingSubtitle, { color: theme.colors.textMuted }]}>{subtitle}</Text>
+        ) : null}
+      </View>
+      {value ? (
+        <Text style={[styles.settingValue, { color: theme.colors.textFaint }]} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
+      {right}
+      {onPress && !right ? (
+        <Ionicons name="chevron-forward" size={16} color={theme.colors.textFaint} />
+      ) : null}
+    </>
+  );
+
+  if (!onPress) {
+    return <View style={[styles.settingRow, { borderTopColor: theme.colors.border }]}>{content}</View>;
+  }
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.settingRow,
+        { borderTopColor: theme.colors.border },
+        pressed ? { backgroundColor: theme.colors.surfaceAlt } : null,
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
+export function SettingsCard({ children, first }: { children: React.ReactNode; first?: boolean }) {
+  const { theme } = useDrive();
+  return (
+    <View
+      style={{
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.radius.lg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.colors.border,
+        overflow: 'hidden',
+        marginBottom: 22,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
 export function HorizontalScroll({ children }: { children: React.ReactNode }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hscroll}>
@@ -362,4 +450,23 @@ const styles = StyleSheet.create({
   rowLabel: { flex: 1, fontSize: 14.5, fontWeight: '500' },
   rowValue: { fontSize: 12.5, maxWidth: 140 },
   hscroll: { paddingHorizontal: 0, gap: 8 },
+  groupLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  settingTitle: { fontSize: 14.5, fontWeight: '600' },
+  settingSubtitle: { fontSize: 11.5, marginTop: 3, lineHeight: 16 },
+  settingValue: { fontSize: 12.5, fontWeight: '600', maxWidth: 130 },
 });

@@ -51,6 +51,7 @@ export function FileRow({
           </Text>
           {node.starred ? <Ionicons name="star" size={12} color={theme.colors.star} /> : null}
           {node.share ? <Ionicons name="link" size={12} color={theme.colors.primary} /> : null}
+          {node.offline ? <Ionicons name="cloud-done" size={12} color={theme.colors.accent} /> : null}
         </View>
         <Text style={[styles.meta, { color: theme.colors.textFaint }]} numberOfLines={1}>
           {meta}

@@ -8,7 +8,7 @@ import { EmptyState, IconTile, SectionTitle } from '../components/ui';
 import { categoryOf, formatDate } from '../utils/format';
 import { iconForCategory, inkForCategory, tintForCategory } from '../utils/icons';
 
-export function SharedScreen({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function SharedScreen({ onOpenDrawer }: { onOpenDrawer: () => void }) {
   const { theme, sharedNodes, revokeShare, notify, share } = useDrive();
   const items = sharedNodes();
 
@@ -18,7 +18,7 @@ export function SharedScreen({ onOpenSettings }: { onOpenSettings: () => void })
         title="Shared"
         subtitle="Links you have handed out"
         showSearch={false}
-        onAvatarPress={onOpenSettings}
+        onAvatarPress={onOpenDrawer}
       />
       <FlatList
         data={items}

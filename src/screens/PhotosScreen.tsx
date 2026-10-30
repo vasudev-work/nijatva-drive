@@ -16,10 +16,10 @@ import { categoryOf, formatBytes } from '../utils/format';
 
 export function PhotosScreen({
   onOpenFile,
-  onOpenSettings,
+  onOpenDrawer,
 }: {
   onOpenFile: (id: string) => void;
-  onOpenSettings: () => void;
+  onOpenDrawer: () => void;
 }) {
   const { theme, nodes } = useDrive();
   const { width } = useWindowDimensions();
@@ -53,7 +53,7 @@ export function PhotosScreen({
         title="Photos"
         subtitle={`${photos.length} images · ${formatBytes(totalBytes)}`}
         showSearch={false}
-        onAvatarPress={onOpenSettings}
+        onAvatarPress={onOpenDrawer}
       />
       <FlatList
         data={groups}

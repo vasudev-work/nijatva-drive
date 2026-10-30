@@ -13,6 +13,7 @@ import type {
   DriveMeta,
   DriveNode,
   DriveState,
+  HomeTab,
   ThemeMode,
   UploadAsset,
 } from '../types';
@@ -21,6 +22,7 @@ import {
   loadState,
   makeFolderNode,
   newId,
+  pruneOrphanBlobs,
   removeBlob,
   saveState,
   writeTextIntoVault,
@@ -37,11 +39,21 @@ export interface DriveStats {
   byCategory: Record<string, number>;
 }
 
+export interface UploadProgressState {
+  total: number;
+  done: number;
+  current: string;
+}
+
 export interface DriveApi {
   ready: boolean;
   nodes: DriveNode[];
   meta: DriveMeta;
   theme: Theme;
+  locked: boolean;
+  lock: () => void;
+  unlock: () => void;
+  uploading: UploadProgressState | null;
   toast: string | null;
   notify: (message: string) => void;
   dismissToast: () => void;
@@ -52,6 +64,13 @@ export interface DriveApi {
   trashedNodes: () => DriveNode[];
   sharedNodes: () => DriveNode[];
   starredNodes: () => DriveNode[];
+  offlineNodes: () => DriveNode[];
+  toggleOffline: (id: string) => Promise<void>;
+  setDefaultHomeTab: (tab: HomeTab) => Promise<void>;
+  setPhotoBackup: (value: boolean) => Promise<void>;
+  setTelemetry: (value: boolean) => Promise<void>;
+  setCrashReports: (value: boolean) => Promise<void>;
+  clearCache: () => Promise<{ removed: number; bytes: number }>;
   recentNodes: (limit?: number) => DriveNode[];
   search: (query: string) => DriveNode[];
   createFolder: (name: string, parentId: string | null) => Promise<void>;
@@ -83,6 +102,10 @@ const EMPTY_STATE: DriveState = {
     onboarded: false,
     themeMode: 'system',
     apiUrl: null,
+    defaultHomeTab: 'files',
+    photoBackup: false,
+    telemetry: false,
+    crashReports: false,
   },
 };
 
@@ -91,6 +114,8 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<DriveState>(EMPTY_STATE);
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
+  const [uploading, setUploading] = useState<UploadProgressState | null>(null);
   const stateRef = useRef<DriveState>(EMPTY_STATE);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -101,6 +126,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         stateRef.current = loaded;
         setState(loaded);
+        setLocked(loaded.meta.passcode !== null);
       })
       .finally(() => {
         if (mounted) setReady(true);
@@ -125,6 +151,8 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const dismissToast = useCallback(() => setToast(null), []);
+  const lock = useCallback(() => setLocked(true), []);
+  const unlock = useCallback(() => setLocked(false), []);
 
   const theme = useMemo<Theme>(() => {
     const mode = state.meta.themeMode;
@@ -218,6 +246,14 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     [state.nodes],
   );
 
+  const offlineNodes = useCallback(
+    () =>
+      state.nodes
+        .filter((node) => node.offline && node.trashedAt === null)
+        .sort((a, b) => b.updatedAt - a.updatedAt),
+    [state.nodes],
+  );
+
   const recentNodes = useCallback(
     (limit = 12) =>
       state.nodes
@@ -267,6 +303,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
         createdAt: now,
         updatedAt: now,
         starred: false,
+        offline: false,
         trashedAt: null,
         share: null,
       };
@@ -279,7 +316,9 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   const upload = useCallback(
     async (assets: UploadAsset[], parentId: string | null) => {
       const created: DriveNode[] = [];
-      for (const asset of assets) {
+      setUploading({ total: assets.length, done: 0, current: assets[0]?.name ?? '' });
+      for (const [index, asset] of assets.entries()) {
+        setUploading({ total: assets.length, done: index, current: asset.name });
         const name = asset.name || 'Untitled';
         try {
           const stored = await copyIntoVault(asset.uri, name);
@@ -295,6 +334,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
             createdAt: now,
             updatedAt: now,
             starred: false,
+            offline: false,
             trashedAt: null,
             share: null,
           });
@@ -302,6 +342,7 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
           notify(`Could not add ${name}`);
         }
       }
+      setUploading(null);
       if (created.length > 0) {
         await commit((prev) => ({ ...prev, nodes: [...created, ...prev.nodes] }));
         notify(created.length === 1 ? `Added ${created[0].name}` : `Added ${created.length} items`);
@@ -473,6 +514,63 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     [commit, notify],
   );
 
+  const toggleOffline = useCallback(
+    async (id: string) => {
+      let pinned = false;
+      await commit((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((node) => {
+          if (node.id !== id) return node;
+          pinned = !node.offline;
+          return { ...node, offline: pinned };
+        }),
+      }));
+      notify(pinned ? 'Pinned for offline access' : 'Removed from offline');
+    },
+    [commit, notify],
+  );
+
+  const setDefaultHomeTab = useCallback(
+    async (tab: HomeTab) => {
+      await commit((prev) => ({ ...prev, meta: { ...prev.meta, defaultHomeTab: tab } }));
+    },
+    [commit],
+  );
+
+  const setPhotoBackup = useCallback(
+    async (value: boolean) => {
+      await commit((prev) => ({ ...prev, meta: { ...prev.meta, photoBackup: value } }));
+    },
+    [commit],
+  );
+
+  const setTelemetry = useCallback(
+    async (value: boolean) => {
+      await commit((prev) => ({ ...prev, meta: { ...prev.meta, telemetry: value } }));
+    },
+    [commit],
+  );
+
+  const setCrashReports = useCallback(
+    async (value: boolean) => {
+      await commit((prev) => ({ ...prev, meta: { ...prev.meta, crashReports: value } }));
+    },
+    [commit],
+  );
+
+  const clearCache = useCallback(async () => {
+    const referenced = stateRef.current.nodes
+      .map((node) => node.localUri)
+      .filter((uri): uri is string => Boolean(uri));
+    const result = pruneOrphanBlobs(referenced);
+    notify(
+      result.removed > 0
+        ? `Cleared ${result.removed} orphaned blob${result.removed === 1 ? '' : 's'}`
+        : 'Nothing to clear — cache is tidy',
+    );
+    return result;
+  }, [notify]);
+
   const setThemeMode = useCallback(
     async (mode: ThemeMode) => {
       await commit((prev) => ({ ...prev, meta: { ...prev.meta, themeMode: mode } }));
@@ -505,6 +603,10 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       nodes: state.nodes,
       meta: state.meta,
       theme,
+      locked,
+      lock,
+      unlock,
+      uploading,
       toast,
       notify,
       dismissToast,
@@ -516,6 +618,13 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       sharedNodes,
       starredNodes,
       recentNodes,
+      offlineNodes,
+      toggleOffline,
+      setDefaultHomeTab,
+      setPhotoBackup,
+      setTelemetry,
+      setCrashReports,
+      clearCache,
       search,
       createFolder,
       createNote,
@@ -539,6 +648,10 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       state.nodes,
       state.meta,
       theme,
+      locked,
+      lock,
+      unlock,
+      uploading,
       toast,
       notify,
       dismissToast,
@@ -550,6 +663,13 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       sharedNodes,
       starredNodes,
       recentNodes,
+      offlineNodes,
+      toggleOffline,
+      setDefaultHomeTab,
+      setPhotoBackup,
+      setTelemetry,
+      setCrashReports,
+      clearCache,
       search,
       createFolder,
       createNote,

@@ -16,6 +16,7 @@ file next to them, and nothing is uploaded anywhere unless you point the app at 
 
 | Area | What it does |
 | --- | --- |
+| **Drawer** | Slide-in account panel modelled on the Proton Drive mobile drawer: account card, My files / Trash / Available offline, a "More" group (Settings, Plan & storage, Report a bug, Lock vault), then storage usage and version |
 | **Files** | Breadcrumb navigation, list/grid toggle, sort by name/recent/size, starred filter, live search across the whole vault, "jump back in" recents, floating add button |
 | **Upload** | System file picker (multi-select), real copy into the vault, automatic MIME and size capture |
 | **Folders** | Create, rename, move into any folder from a tree picker, recursive delete |
@@ -23,7 +24,10 @@ file next to them, and nothing is uploaded anywhere unless you point the app at 
 | **Photos** | Automatic grid of every image in the vault, grouped by day |
 | **Shared** | Every active link in one place, with copy, rotate and revoke |
 | **Trash** | Soft delete, restore (re-parents if the original folder is gone), delete permanently, empty trash |
-| **Settings** | Storage meter with per-type breakdown, light/dark/system theme, app lock passcode, API base url + connection test, vault footprint |
+| **Available offline** | Pin any file from its long-press menu; pinned items survive a busy vault and get their own screen with a running total |
+| **Settings** | Grouped in the Proton Drive order — Account, Security, Backup, Appearance, Storage, Sync, About, Usage statistics, System — with live toggles, a theme picker, a default home tab, a diagnostics sheet and cache cleanup |
+| **Upload** | A full-screen dashed dropzone overlay with a progress ring while files are being written into the vault |
+| **Chrome** | Glass tab bar (real backdrop blur via `expo-blur`), gradient header, animated drawer |
 | **Onboarding** | A three-point welcome screen and a numeric lock screen |
 
 ## Design system
@@ -116,8 +120,11 @@ Each item is a `DriveNode`:
 
 ```ts
 { id, name, kind: 'file' | 'folder', parentId, size, mimeType,
-  localUri, createdAt, updatedAt, starred, trashedAt, share }
+  localUri, createdAt, updatedAt, starred, offline, trashedAt, share }
 ```
+
+App-level preferences live in `DriveMeta`: quota, passcode, theme mode, default home tab,
+photo-backup / telemetry / crash-report flags and the optional API url.
 
 Folders are nodes with `kind: 'folder'` and `parentId: null` at the root, so moves are a single field
 write and the tree is rebuilt by walking parents. Deleting a folder marks (or removes) the whole
@@ -158,13 +165,34 @@ This is a UI/UX-complete client, not a cryptographic one:
 If you want the real thing, the places to change are `src/storage/index.ts` (encrypt blobs with a
 key derived from the passcode) and `src/api/client.ts` (upload ciphertext instead of metadata).
 
+## Where this departs from the reference screenshots
+
+The drawer and settings structure follow the Proton Drive 3.2 Android app, but three things are
+deliberately different:
+
+- **Nijatva palette instead of purple.** Section labels, meters and accents use the teal/mint brand
+  rather than Proton's violet, and surfaces are green-black rather than neutral black.
+- **No account theatre.** There is no sign-in server, so "Sign out" becomes "Lock vault", the plan row
+  opens an honest Free-plan sheet, and telemetry toggles say plainly that nothing is sent.
+- **Real local work instead of sync.** Every row that says it does something (pin offline, clear cache,
+  change theme, change home tab) actually mutates the vault on disk.
+
+## Changelog
+
+**1.1.0** — account drawer, Available offline (pinning), settings rebuilt into grouped sections,
+upload dropzone overlay, glass tab bar, default home tab, vault diagnostics, orphaned-blob cleanup.
+
+**1.0.0** — first release: files, folders, uploads, viewer, photos, shared links, trash, settings,
+API stub.
+
 ## Roadmap
 
 - Encrypted blobs with a passcode-derived key (Argon2id + AES-GCM)
 - Real share links served by the backend, with expiry and download counts
 - Multi-select and batch move/delete
 - Offline pinning and background upload queue
-- Tablet two-pane layout
+- Tablet two-pane layout (context-aware inspector panel next to the file list)
+- Tag-based smart spaces so one file can appear in several contexts without duplication
 
 ## License
 

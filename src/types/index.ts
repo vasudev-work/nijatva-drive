@@ -21,10 +21,14 @@ export interface DriveNode {
   createdAt: number;
   updatedAt: number;
   starred: boolean;
+  /** pinned for offline access */
+  offline: boolean;
   /** soft delete timestamp, null when live */
   trashedAt: number | null;
   share: ShareInfo | null;
 }
+
+export type HomeTab = 'files' | 'photos';
 
 export interface DriveMeta {
   version: number;
@@ -33,6 +37,10 @@ export interface DriveMeta {
   onboarded: boolean;
   themeMode: ThemeMode;
   apiUrl: string | null;
+  defaultHomeTab: HomeTab;
+  photoBackup: boolean;
+  telemetry: boolean;
+  crashReports: boolean;
 }
 
 export interface DriveState {

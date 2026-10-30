@@ -1,7 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { useDrive } from '../store/DriveProvider';
 import type { IconName } from '../utils/icons';
 
@@ -28,11 +27,14 @@ export function TabBar({
   return (
     <View style={[styles.wrap, { bottom: 18 + bottomInset }]} pointerEvents="box-none">
       <View style={[styles.barWrap, theme.shadow.float]}>
-        <BlurView
-          intensity={theme.mode === 'dark' ? 40 : 70}
-          tint={theme.mode === 'dark' ? 'dark' : 'light'}
-          experimentalBlurMethod="dimezisBlurView"
-          style={[styles.blur, { borderColor: theme.colors.border }]}
+        <View
+          style={[
+            styles.glass,
+            {
+              borderColor: theme.colors.border,
+              backgroundColor: theme.mode === 'dark' ? 'rgba(17,26,24,0.92)' : 'rgba(255,255,255,0.92)',
+            },
+          ]}
         />
         <View style={styles.bar}>
         {TABS.map((tab) => {
@@ -74,7 +76,7 @@ export function TabBar({
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   barWrap: { borderRadius: 24 },
-  blur: {
+  glass: {
     ...StyleSheet.absoluteFill,
     borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,

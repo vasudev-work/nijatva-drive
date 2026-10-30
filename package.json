@@ -5,7 +5,6 @@
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
     "expo": "~58.0.21",
-    "expo-blur": "~58.0.5",
     "expo-clipboard": "~58.0.4",
     "expo-document-picker": "~58.0.4",
     "expo-file-system": "~58.0.13",
@@ -22,8 +21,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "prebuild": "expo prebuild --clean",
@@ -32,7 +31,7 @@
     "server": "node server/index.js"
   },
   "private": true,
-  "description": "Nijatva Drive \u2014 a private, offline-first file vault for Android, built with Expo and React Native.",
+  "description": "Nijatva Drive — a private, offline-first file vault for Android, built with Expo and React Native.",
   "keywords": [
     "expo",
     "react-native",

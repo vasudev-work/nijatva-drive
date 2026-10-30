@@ -1,0 +1,69 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'App.tsx'
+      - 'app.json'
+      - 'package.json'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: assembleRelease
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew --no-daemon :app:assembleRelease
+
+      - name: Collect APK
+        run: |
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "dist/nijatva-drive-1.1.0.apk"
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nijatva-drive-apk
+          path: dist/nijatva-drive-1.1.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish to a GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.1.0-build.${{ github.run_number }}"
+          gh release create "$TAG" "dist/nijatva-drive-1.1.0.apk" \
+            --title "Nijatva Drive 1.1.0 (build ${{ github.run_number }})" \
+            --notes "Signed-with-debug-key release APK built from ${{ github.sha }}. Sideload only: enable \"Install unknown apps\" for your file manager or browser, then open the APK." \
+            --repo "${{ github.repository }}"

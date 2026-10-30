@@ -27,7 +27,7 @@ file next to them, and nothing is uploaded anywhere unless you point the app at 
 | **Available offline** | Pin any file from its long-press menu; pinned items survive a busy vault and get their own screen with a running total |
 | **Settings** | Grouped in the Proton Drive order — Account, Security, Backup, Appearance, Storage, Sync, About, Usage statistics, System — with live toggles, a theme picker, a default home tab, a diagnostics sheet and cache cleanup |
 | **Upload** | A full-screen dashed dropzone overlay with a progress ring while files are being written into the vault |
-| **Chrome** | Glass tab bar (real backdrop blur via `expo-blur`), gradient header, animated drawer |
+| **Chrome** | Translucent tab bar, gradient header, animated drawer |
 | **Onboarding** | A three-point welcome screen and a numeric lock screen |
 
 ## Design system
@@ -67,7 +67,17 @@ development build (`npx expo run:android`).
 
 ## Building an APK
 
-Three routes, cheapest first:
+**0. Prebuilt (no toolchain needed)**
+
+Every push to `main` builds a release APK on GitHub Actions and publishes it to this repository's
+[Releases](../../releases) page — look for the newest `v1.1.0-build.*` tag and download
+`nijatva-drive-1.1.0.apk`. The workflow lives in `.github/workflows/android-apk.yml` and can also be
+started by hand from the Actions tab.
+
+The APK is signed with React Native's debug keystore, which is fine for sideloading but **not** for the
+Play Store — generate a real keystore before shipping (see option 2).
+
+Three more routes, cheapest first:
 
 **1. EAS cloud build (no Android SDK needed) — recommended**
 
@@ -180,7 +190,7 @@ deliberately different:
 ## Changelog
 
 **1.1.0** — account drawer, Available offline (pinning), settings rebuilt into grouped sections,
-upload dropzone overlay, glass tab bar, default home tab, vault diagnostics, orphaned-blob cleanup.
+upload dropzone overlay, translucent tab bar, default home tab, vault diagnostics, orphaned-blob cleanup.
 
 **1.0.0** — first release: files, folders, uploads, viewer, photos, shared links, trash, settings,
 API stub.

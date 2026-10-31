@@ -39,6 +39,10 @@ jobs:
         run: npx expo prebuild --platform android --no-install
 
       - name: Build release APK
+        env:
+          EXPO_PUBLIC_ZOHO_CLIENT_ID: ${{ secrets.ZOHO_CLIENT_ID }}
+          EXPO_PUBLIC_ZOHO_CLIENT_SECRET: ${{ secrets.ZOHO_CLIENT_SECRET }}
+          EXPO_PUBLIC_ZOHO_DC: ${{ vars.ZOHO_DC }}
         run: |
           cd android
           chmod +x gradlew
@@ -48,13 +52,13 @@ jobs:
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk \
-             "dist/nijatva-drive-1.1.0.apk"
+             "dist/nijatva-drive-1.2.0.apk"
           ls -lh dist
 
       - uses: actions/upload-artifact@v4
         with:
           name: nijatva-drive-apk
-          path: dist/nijatva-drive-1.1.0.apk
+          path: dist/nijatva-drive-1.2.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -62,8 +66,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v1.1.0-build.${{ github.run_number }}"
-          gh release create "$TAG" "dist/nijatva-drive-1.1.0.apk" \
-            --title "Nijatva Drive 1.1.0 (build ${{ github.run_number }})" \
+          TAG="v1.2.0-build.${{ github.run_number }}"
+          gh release create "$TAG" "dist/nijatva-drive-1.2.0.apk" \
+            --title "Nijatva Drive 1.2.0 (build ${{ github.run_number }})" \
             --notes "Signed-with-debug-key release APK built from ${{ github.sha }}. Sideload only: enable \"Install unknown apps\" for your file manager or browser, then open the APK." \
             --repo "${{ github.repository }}"

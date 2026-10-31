@@ -16,7 +16,16 @@ import type {
   HomeTab,
   ThemeMode,
   UploadAsset,
+  ZohoSession,
+  ZohoStatus,
 } from '../types';
+import {
+  loadSession as loadZohoSession,
+  refreshSession as refreshZohoSession,
+  signIn as zohoSignIn,
+  signOut as zohoSignOut,
+  zohoConfigured,
+} from '../auth/zoho';
 import {
   copyIntoVault,
   loadState,
@@ -53,6 +62,10 @@ export interface DriveApi {
   locked: boolean;
   lock: () => void;
   unlock: () => void;
+  zoho: { status: ZohoStatus; session: ZohoSession | null };
+  connectZoho: () => Promise<void>;
+  disconnectZoho: () => Promise<void>;
+  refreshZoho: () => Promise<void>;
   uploading: UploadProgressState | null;
   toast: string | null;
   notify: (message: string) => void;
@@ -115,6 +128,10 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const [zohoSession, setZohoSession] = useState<ZohoSession | null>(null);
+  const [zohoStatus, setZohoStatus] = useState<ZohoStatus>(
+    zohoConfigured ? 'disconnected' : 'unconfigured',
+  );
   const [uploading, setUploading] = useState<UploadProgressState | null>(null);
   const stateRef = useRef<DriveState>(EMPTY_STATE);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -144,6 +161,21 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
     await saveState(next);
   }, []);
 
+  useEffect(() => {
+    if (!zohoConfigured) return;
+    let mounted = true;
+    loadZohoSession()
+      .then((session) => {
+        if (!mounted || !session) return;
+        setZohoSession(session);
+        setZohoStatus('connected');
+      })
+      .catch(() => undefined);
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const notify = useCallback((message: string) => {
     setToast(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -153,6 +185,38 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
   const dismissToast = useCallback(() => setToast(null), []);
   const lock = useCallback(() => setLocked(true), []);
   const unlock = useCallback(() => setLocked(false), []);
+
+  const connectZoho = useCallback(async () => {
+    setZohoStatus('connecting');
+    try {
+      const session = await zohoSignIn();
+      setZohoSession(session);
+      setZohoStatus('connected');
+      notify(`Signed in as ${session.profile.email || 'your Zoho account'}`);
+    } catch (error) {
+      setZohoStatus(zohoSession ? 'connected' : 'disconnected');
+      notify(error instanceof Error ? error.message : 'Zoho sign-in failed');
+    }
+  }, [notify, zohoSession]);
+
+  const disconnectZoho = useCallback(async () => {
+    await zohoSignOut(zohoSession);
+    setZohoSession(null);
+    setZohoStatus(zohoConfigured ? 'disconnected' : 'unconfigured');
+    notify('Zoho account disconnected');
+  }, [zohoSession, notify]);
+
+  const refreshZoho = useCallback(async () => {
+    if (!zohoSession) return;
+    try {
+      const next = await refreshZohoSession(zohoSession);
+      setZohoSession(next);
+      setZohoStatus('connected');
+      notify('Zoho session refreshed');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Could not refresh Zoho session');
+    }
+  }, [zohoSession, notify]);
 
   const theme = useMemo<Theme>(() => {
     const mode = state.meta.themeMode;
@@ -606,6 +670,10 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       locked,
       lock,
       unlock,
+      zoho: { status: zohoStatus, session: zohoSession },
+      connectZoho,
+      disconnectZoho,
+      refreshZoho,
       uploading,
       toast,
       notify,
@@ -651,6 +719,11 @@ export function DriveProvider({ children }: { children: React.ReactNode }) {
       locked,
       lock,
       unlock,
+      zohoStatus,
+      zohoSession,
+      connectZoho,
+      disconnectZoho,
+      refreshZoho,
       uploading,
       toast,
       notify,

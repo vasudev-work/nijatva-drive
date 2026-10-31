@@ -31,7 +31,7 @@ export function Drawer({
   onNavigate: (target: DrawerTarget) => void;
   onOpenPlan: () => void;
 }) {
-  const { theme, stats, meta, lock, notify, offlineNodes } = useDrive();
+  const { theme, stats, meta, lock, notify, offlineNodes, zoho } = useDrive();
   const pinned = offlineNodes().length;
   const { width } = useWindowDimensions();
   const panelWidth = Math.min(width * 0.86, 340);
@@ -105,13 +105,19 @@ export function Drawer({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.accountName, { color: theme.colors.text }]} numberOfLines={1}>
-                  nijatva.os
+                  {zoho.session ? zoho.session.profile.name : 'nijatva.os'}
                 </Text>
                 <Text style={[styles.accountMail, { color: theme.colors.textMuted }]} numberOfLines={1}>
-                  vasudev.work@rediffmail.com
+                  {zoho.session ? zoho.session.profile.email : 'vasudev.work@rediffmail.com'}
                 </Text>
               </View>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.textFaint} />
+              {zoho.session ? (
+                <View style={[styles.zohoBadge, { backgroundColor: theme.colors.primarySoft }]}>
+                  <Text style={[styles.zohoBadgeLabel, { color: theme.colors.primary }]}>ZOHO</Text>
+                </View>
+              ) : (
+                <Ionicons name="chevron-down" size={16} color={theme.colors.textFaint} />
+              )}
             </Pressable>
 
             <View style={styles.group}>
@@ -204,6 +210,8 @@ const styles = StyleSheet.create({
   avatarLabel: { fontSize: 15, fontWeight: '700' },
   accountName: { fontSize: 14.5, fontWeight: '700' },
   accountMail: { fontSize: 11.5, marginTop: 2 },
+  zohoBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  zohoBadgeLabel: { fontSize: 9.5, fontWeight: '700', letterSpacing: 0.6 },
   group: { paddingTop: 18, paddingHorizontal: 8 },
   item: {
     flexDirection: 'row',

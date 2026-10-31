@@ -28,6 +28,10 @@ export function SettingsScreen() {
     setCrashReports,
     clearCache,
     notify,
+    zoho,
+    connectZoho,
+    disconnectZoho,
+    refreshZoho,
   } = useDrive();
   const [passPrompt, setPassPrompt] = useState(false);
   const [urlPrompt, setUrlPrompt] = useState(false);
@@ -107,8 +111,36 @@ export function SettingsScreen() {
           </View>
           <SettingsRow
             title="This vault is on this device"
-            subtitle="No account, no server. Everything stays in app storage."
+            subtitle="Files stay in app storage. A Zoho account is optional and only used for sign-in."
           />
+          {zoho.status === 'unconfigured' ? (
+            <SettingsRow
+              title="Zoho sign-in"
+              subtitle="Not configured in this build — set EXPO_PUBLIC_ZOHO_CLIENT_ID before building"
+              value="Off"
+            />
+          ) : zoho.status === 'connected' && zoho.session ? (
+            <>
+              <SettingsRow
+                title={zoho.session.profile.name}
+                subtitle={`${zoho.session.profile.email} · Zoho ${zoho.session.location.toUpperCase()} · API ${zoho.session.apiDomain.replace('https://', '')}`}
+                value="Connected"
+              />
+              <SettingsRow title="Refresh Zoho session" subtitle="Exchange the refresh token for a new access token" onPress={refreshZoho} />
+              <SettingsRow title="Disconnect Zoho" subtitle="Revokes the refresh token on Zoho" tone="danger" onPress={disconnectZoho} />
+            </>
+          ) : (
+            <SettingsRow
+              title="Connect Zoho account"
+              subtitle={
+                zoho.status === 'connecting'
+                  ? 'Opening the Zoho consent screen…'
+                  : 'Authorization code flow with PKCE'
+              }
+              value={zoho.status === 'connecting' ? 'Working…' : undefined}
+              onPress={connectZoho}
+            />
+          )}
         </SettingsCard>
 
         <GroupLabel label="Security" />

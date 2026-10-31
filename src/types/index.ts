@@ -57,3 +57,20 @@ export interface UploadAsset {
   mimeType?: string;
   size?: number;
 }
+
+export interface ZohoProfile {
+  zuid: string;
+  email: string;
+  name: string;
+}
+
+export interface ZohoSession {
+  accessToken: string;
+  refreshToken: string | null;
+  expiresAt: number;
+  apiDomain: string;
+  location: string;
+  profile: ZohoProfile;
+}
+
+export type ZohoStatus = 'unconfigured' | 'disconnected' | 'connecting' | 'connected';

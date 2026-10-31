@@ -25,6 +25,7 @@ file next to them, and nothing is uploaded anywhere unless you point the app at 
 | **Shared** | Every active link in one place, with copy, rotate and revoke |
 | **Trash** | Soft delete, restore (re-parents if the original folder is gone), delete permanently, empty trash |
 | **Available offline** | Pin any file from its long-press menu; pinned items survive a busy vault and get their own screen with a running total |
+| **Zoho sign-in** | Optional account sign-in through Zoho Accounts (authorization code + PKCE), tokens in the device keychain, revocable from Settings |
 | **Settings** | Grouped in the Proton Drive order — Account, Security, Backup, Appearance, Storage, Sync, About, Usage statistics, System — with live toggles, a theme picker, a default home tab, a diagnostics sheet and cache cleanup |
 | **Upload** | A full-screen dashed dropzone overlay with a progress ring while files are being written into the vault |
 | **Chrome** | Translucent tab bar, gradient header, animated drawer |
@@ -140,6 +141,36 @@ Folders are nodes with `kind: 'folder'` and `parentId: null` at the root, so mov
 write and the tree is rebuilt by walking parents. Deleting a folder marks (or removes) the whole
 subtree. Blobs live in `<documents>/nijatva-vault/blobs/` and the index in `index.json`.
 
+## Zoho sign-in (optional)
+
+The app can sign in to a Zoho account. It is optional: with no credentials configured the app runs
+exactly as before, fully offline, and Settings shows the row as "Not configured".
+
+**Register the client.** In the Zoho API console create a *Mobile-based Applications* client and set
+the Authorized Redirect URI to `nijatva://oauth` — that is the scheme from `app.json` plus the path the
+app uses, and Zoho requires an exact match. Add `https://github.com/<you>/nijatva-drive` as the
+Homepage URL.
+
+**Configure the build.** Copy `.env.example` to `.env` and fill in the client id, secret and data
+centre (`in`, `com`, `eu`, …), or set the same names as repository secrets so CI injects them:
+
+| Name | Where |
+| --- | --- |
+| `ZOHO_CLIENT_ID` | repo secret (or `EXPO_PUBLIC_ZOHO_CLIENT_ID` in `.env`) |
+| `ZOHO_CLIENT_SECRET` | repo secret (or `EXPO_PUBLIC_ZOHO_CLIENT_SECRET` in `.env`) |
+| `ZOHO_DC` | repo variable, defaults to `in` |
+
+**About the secret.** Zoho treats mobile clients as public clients and mandates PKCE, but its token
+endpoint still expects a client secret, so — like Zoho's own Android SDK — the value has to be present
+on the device. `EXPO_PUBLIC_*` values are inlined into the JS bundle, so treat the secret as public:
+keep it out of git (`.env` is ignored), inject it at build time, and rotate it in the API console if it
+is ever shared in a chat, a screenshot or a public repo.
+
+**What the flow does:** `AuthRequest` with `usePKCE: true` opens the consent screen, the app catches
+`nijatva://oauth`, exchanges the code at `accounts.zoho.<dc>/oauth/v2/token`, fetches the profile from
+`/oauth/user/info` with an `Zoho-oauthtoken` header, and stores the session in `expo-secure-store`.
+Disconnecting revokes the refresh token.
+
 ## The API stub
 
 `server/index.js` is dependency-free Node (18+), in memory, and exists so you can wire the client to a
@@ -188,6 +219,11 @@ deliberately different:
   change theme, change home tab) actually mutates the vault on disk.
 
 ## Changelog
+
+**1.2.0** — optional Zoho Accounts sign-in (PKCE, keychain storage, token refresh and revocation),
+credentials injected at build time, Zoho identity in the drawer and Settings.
+
+**1.1.0** — account drawer
 
 **1.1.0** — account drawer, Available offline (pinning), settings rebuilt into grouped sections,
 upload dropzone overlay, translucent tab bar, default home tab, vault diagnostics, orphaned-blob cleanup.
